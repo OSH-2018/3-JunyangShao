@@ -41,7 +41,7 @@ int get_mem() {
 
 	}
 	else {
-		return -1;//若栈内已无可取元素，返回错误信号
+		return -ENOSPC;//若栈内已无可取元素，返回错误信号
 	}
 }	//取得内存
 
@@ -115,6 +115,7 @@ static void create_filenode(const char *filename, const struct stat *st)
 	new->file_block = memnum;
 	root = new;
 	*root_for_begin = root;
+	return;
 	//printf("root for begin %d\nroot %d\nroot_fbc %d\n ", root_for_begin, root,*root_for_begin);
 }
 
@@ -197,7 +198,7 @@ static int oshfs_write(const char *path, const char *buf, size_t size, off_t off
 	}                 
 	else //错误处理
 	{
-		return -1;
+		return -ENOSPC;
 	}
 	int f = offset / blocksize;	//计算被写入的第一页的页码
 	int o = offset % blocksize ;//计算从第一页哪里开始写入
@@ -230,14 +231,14 @@ static int oshfs_write(const char *path, const char *buf, size_t size, off_t off
 static int oshfs_truncate(const char *path, off_t size)    
 {
     struct filenode *node = get_filenode(path);          
-	int c = size / blocksize - node->block_num;//c为增（减）页数
-	int s;//s为成功增（减）的页数
+	int c = size / blocksize + 1 -node->block_num;//c为截短的页数
+	int s;//s为成功截短的页数
 	s = content_change(node, c);
 	if (s == c) {//得到正确结果
 		node->st.st_size = size;
 	}
 	else {//错误处理
-		return -1;
+		return -ENOENT;
 	}
     return 0;
 }
