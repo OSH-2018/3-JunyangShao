@@ -193,12 +193,11 @@ static int oshfs_write(const char *path, const char *buf, size_t size, off_t off
 	int c = (offset + size - 1) / blocksize + 1 - (node->block_num);//要增（减）的页数
 	if (c < 0)c = 0;//写是不会截短的
 	s=content_change(node, c);//获取成功增（减）的页数（以及增（减）页）
-	if (s == c) {//得到正确结果
-		node->st.st_size = offset + size;
-	}                 
-	else //错误处理
-	{
+	if (s != c) {//错误处理
 		return -ENOSPC;
+	}                 
+	if (offset + size > node->st.st_size) {
+		node->st.st_size = offset + size;
 	}
 	int f = offset / blocksize;	//计算被写入的第一页的页码
 	int o = offset % blocksize ;//计算从第一页哪里开始写入
