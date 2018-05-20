@@ -21,7 +21,7 @@ static void *mem[ blocknr ];
 
 （like this）
 
-![1526115798611](C:\Users\35177\AppData\Local\Temp\1526115798611.png)
+![1526115798611](https://github.com/OSH-2018/3-JunyangShao/blob/master/pic/1.png)
 
 #### `filenode`的定义
 
@@ -321,7 +321,7 @@ static int oshfs_truncate(const char *path, off_t size)
 
 首先是用讲解里的测试方法
 
-![1526121747444](C:\Users\35177\AppData\Local\Temp\1526121747444.png)
+![1526121747444](https://github.com/OSH-2018/3-JunyangShao/blob/master/pic/2.png)
 
 ※因为我的文件系统只有512MB，所以有一个输入2000MiB的测试我改成了400MiB
 
@@ -329,9 +329,9 @@ static int oshfs_truncate(const char *path, off_t size)
 
 除此之外我还写了一张图片进入mmm，能正常显示：
 
-![1526121838107](C:\Users\35177\AppData\Local\Temp\1526121838107.png)
+![1526121838107](https://github.com/OSH-2018/3-JunyangShao/blob/master/pic/3.png)
 
-![1526121859710](C:\Users\35177\AppData\Local\Temp\1526121859710.png)
+![1526121859710](https://github.com/OSH-2018/3-JunyangShao/blob/master/pic/4.png)
 
 使用nano修改txt文件也能正常修改。
 
