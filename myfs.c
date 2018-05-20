@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <fuse.h>
+#include <stdio.h>
 #include <sys/mman.h>
 int blocksize = 32768;	//一页32kb
 struct filenode                         //文件节点存储为链表
@@ -20,10 +21,13 @@ struct filenode                         //文件节点存储为链表
 static void *mem[ blocknr ];             
 static struct filenode *root = NULL;
 //用于链表操作的一个值，不在内存映射中
-static struct filenode **root_for_begin;
+static struct filenode **root_for_begin;	//用一整个页来放root
+int *mstack_map[2];//用两个页来放mstack，假设这里int是4字节的（gcc编译器下）
+int *mstack_pointer_map;//用一整个页来放mstack_pointer
 //用来存储指向链表头的指针，一定可以在mem[0]找到它(在init中完成设置)
 int mstack[blocknr];
 int mstack_pointer = blocknr - 1;
+int init_done;//用来判断init是否已经完成内存分配请求，如果为0则不执行修改mstack_pointer_map的操作
 int get_mem() {
 	int blocknum;
 
@@ -36,6 +40,12 @@ int get_mem() {
 		memset(mem[blocknum], 0, blocksize);
 
 		mstack_pointer--;
+
+		if (init_done) {
+			*mstack_pointer_map = mstack_pointer;//更新文件系统中的mstack_pointer_map;
+		}
+		//printf("%d\n", mstack_pointer);
+		//由于mstack的内容没变，所以不需要更新mstack(pop不会改变mstack的内容);
 
 		return blocknum;
 
@@ -54,6 +64,10 @@ void free_mem(int blocknum) {
 	mstack_pointer++;
 
 	mstack[mstack_pointer] = blocknum;//被释放的元素推入栈
+	
+	*mstack_pointer_map = mstack_pointer;	//更新文件系统中的mstack_pointer_map
+
+	*(mstack_map[mstack_pointer / 8192] + (mstack_pointer % 8192)) = blocknum;//更新文件系统中的mstack_map
 
 	return;
 
@@ -122,6 +136,7 @@ static void create_filenode(const char *filename, const struct stat *st)
 static void *oshfs_init(struct fuse_conn_info *conn)
 //初始化mem栈
 {
+	init_done = 0;
 	int i = 0;
 	for (i = 0; i < blocknr; i++) {
 		mem[i] = NULL;
@@ -132,6 +147,17 @@ static void *oshfs_init(struct fuse_conn_info *conn)
 	z = get_mem();
 	root_for_begin = (struct filenode**)mem[z];//将root_for_begin映射到mem[0]中去;
 	*root_for_begin = NULL;//初始设定文件系统为空
+for (i = 0; i < 2; i++) {
+		z = get_mem();
+		mstack_map[i] = (int *)mem[z];
+		memcpy(mstack_map[i], mstack + 8192 * i, blocksize);
+	}
+	z = get_mem();
+	mstack_pointer_map = (int *)mem[z];
+	*mstack_pointer_map = mstack_pointer;//将准确的mstack_pointer载入文件系统;
+	init_done = 1;
+	//printf("%d\n", mstack_pointer);
+	//由于只进行了pop操作，不需要改变mstack_map;
 	//printf("root for begin %d\nroot %d\nz %d\n ", root_for_begin, root,z);
 	return NULL;
 }
